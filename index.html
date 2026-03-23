@@ -99,6 +99,7 @@ LAYERS.forEach(layer => {
   btn.style.color = '#fff';
   btn.dataset.id = layer.id;
   btn.addEventListener('click', () => toggleLayer(layer.id, btn));
+  layer.btn = btn;
   controls.appendChild(btn);
 });
 
@@ -120,6 +121,7 @@ map.on('load', async () => {
     const geojson = await res.json();
 
     map.addSource(layer.id, { type: 'geojson', data: geojson });
+    layer.btn.textContent = `${layer.label} (${geojson.features.length.toLocaleString()})`;
 
     map.addLayer({
       id: layer.id,
