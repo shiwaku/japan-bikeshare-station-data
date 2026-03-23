@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Japan Bikeshare Station Map</title>
+  <link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet">
+  <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; }
+
+    header {
+      padding: 10px 16px;
+      background: #1a1a2e;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 15px; font-weight: 600; }
+
+    #controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .layer-btn {
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+    .layer-btn.active { opacity: 1; }
+    .layer-btn:not(.active) { opacity: 0.4; }
+
+    #map { flex: 1; }
+
+    #popup-content { font-size: 13px; line-height: 1.8; }
+    #popup-content strong { display: block; margin-bottom: 4px; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Japan Bikeshare Stations</h1>
+  <div id="controls"></div>
+</header>
+<div id="map"></div>
+
+<script>
+const LAYERS = [
+  {
+    id: 'docomo_tokyo',
+    label: 'ドコモ（東京）',
+    file: 'data/docomo_cycle_tokyo_station.geojson',
+    color: '#e74c3c',
+  },
+  {
+    id: 'docomo',
+    label: 'ドコモ（全国）',
+    file: 'data/docomo_cycle_station.geojson',
+    color: '#e67e22',
+  },
+  {
+    id: 'hellocycling',
+    label: 'ハローサイクリング',
+    file: 'data/hellocycling_station.geojson',
+    color: '#27ae60',
+  },
+];
+
+const map = new maplibregl.Map({
+  container: 'map',
+  style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  center: [136.5, 36.0],
+  zoom: 5,
+});
+
+map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+const active = new Set(LAYERS.map(l => l.id));
+
+// ボタン生成
+const controls = document.getElementById('controls');
+LAYERS.forEach(layer => {
+  const btn = document.createElement('button');
+  btn.className = 'layer-btn active';
+  btn.textContent = layer.label;
+  btn.style.background = layer.color;
+  btn.style.color = '#fff';
+  btn.dataset.id = layer.id;
+  btn.addEventListener('click', () => toggleLayer(layer.id, btn));
+  controls.appendChild(btn);
+});
+
+function toggleLayer(id, btn) {
+  if (active.has(id)) {
+    active.delete(id);
+    map.setLayoutProperty(id, 'visibility', 'none');
+    btn.classList.remove('active');
+  } else {
+    active.add(id);
+    map.setLayoutProperty(id, 'visibility', 'visible');
+    btn.classList.add('active');
+  }
+}
+
+map.on('load', async () => {
+  for (const layer of LAYERS) {
+    const res = await fetch(layer.file);
+    const geojson = await res.json();
+
+    map.addSource(layer.id, { type: 'geojson', data: geojson });
+
+    map.addLayer({
+      id: layer.id,
+      type: 'circle',
+      source: layer.id,
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 2, 10, 5, 14, 8],
+        'circle-color': layer.color,
+        'circle-opacity': 0.85,
+        'circle-stroke-width': 1,
+        'circle-stroke-color': '#fff',
+        'circle-stroke-opacity': 0.5,
+      },
+    });
+
+    // ホバーカーソル
+    map.on('mouseenter', layer.id, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', layer.id, () => { map.getCanvas().style.cursor = ''; });
+
+    // クリックでポップアップ
+    map.on('click', layer.id, e => {
+      const p = e.features[0].properties;
+      new maplibregl.Popup({ maxWidth: '260px' })
+        .setLngLat(e.features[0].geometry.coordinates)
+        .setHTML(`
+          <div id="popup-content">
+            <strong>${p.name}</strong>
+            駐輪台数: ${p.capacity ?? '—'}<br>
+            ステーションID: ${p.station_id}<br>
+            地域ID: ${p.region_id ?? '—'}
+          </div>
+        `)
+        .addTo(map);
+    });
+  }
+});
+</script>
+</body>
+</html>

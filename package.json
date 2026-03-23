@@ -1,0 +1,11 @@
+{
+  "name": "bikeshare-station-fetcher",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "fetch": "node src/fetch_stations.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

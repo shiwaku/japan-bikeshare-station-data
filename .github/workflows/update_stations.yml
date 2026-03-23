@@ -1,0 +1,31 @@
+name: Update Bikeshare Station Data
+
+on:
+  schedule:
+    - cron: '0 0 1,15 * *'  # 毎月1日と15日(UTC 0時) = 約2週間に1回
+  workflow_dispatch:  # 手動実行用
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch station data
+        run: node src/fetch_stations.js
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/
+          git diff --staged --quiet || \
+            git commit -m "chore: update bikeshare station data [$(date -u '+%Y-%m-%d')]" && \
+            git push
