@@ -78,6 +78,7 @@ const map = new maplibregl.Map({
   style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
   center: [136.5, 36.0],
   zoom: 5,
+  hash: true,
 });
 
 map.addControl(new maplibregl.NavigationControl(), 'top-right');
@@ -131,6 +132,27 @@ map.on('load', async () => {
         'circle-stroke-width': 1,
         'circle-stroke-color': '#fff',
         'circle-stroke-opacity': 0.5,
+      },
+    });
+
+    // ステーション名ラベル
+    map.addLayer({
+      id: `${layer.id}-label`,
+      type: 'symbol',
+      source: layer.id,
+      minzoom: 13,
+      layout: {
+        'text-field': ['get', 'name'],
+        'text-font': ['Noto Sans Regular'],
+        'text-size': 11,
+        'text-offset': [0, 1.2],
+        'text-anchor': 'top',
+        'text-allow-overlap': false,
+      },
+      paint: {
+        'text-color': '#ffffff',
+        'text-halo-color': '#000000',
+        'text-halo-width': 1,
       },
     });
 
