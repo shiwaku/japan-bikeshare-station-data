@@ -148,7 +148,13 @@ map.on('load', async () => {
     map.on('click', layer.id, e => {
       const p = e.features[0].properties;
       const rows = Object.entries(p)
-        .map(([k, v]) => `<tr><td>${k}</td><td>${v !== '' && v !== null ? v : '—'}</td></tr>`)
+        .filter(([k]) => k !== 'rental_uris.ios' && k !== 'rental_uris.android')
+        .map(([k, v]) => {
+          if (k === 'rental_uris.web' && v) {
+            return `<tr><td>${k}</td><td><a href="${v}" target="_blank" rel="noopener">${v}</a></td></tr>`;
+          }
+          return `<tr><td>${k}</td><td>${v !== '' && v !== null ? v : '—'}</td></tr>`;
+        })
         .join('');
       new maplibregl.Popup({ maxWidth: '320px' })
         .setLngLat(e.features[0].geometry.coordinates)
