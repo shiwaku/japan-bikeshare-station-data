@@ -10,11 +10,12 @@
 
 | ファイル名 | サービス | ステーション数（目安） |
 |---|---|---|
-| `docomo_cycle_tokyo_station` | ドコモ・バイクシェア（東京） | 約 1,790 |
-| `docomo_cycle_station` | ドコモ・バイクシェア（全国） | 約 5,744 |
+| `docomo_cycle_station` | ドコモ・バイクシェア | 約 5,744 |
 | `hellocycling_station` | ハローサイクリング | 約 13,736 |
 
 ### カラム
+
+#### ドコモ・バイクシェア
 
 | カラム | 説明 |
 |---|---|
@@ -24,6 +25,22 @@
 | `lon` | 経度 |
 | `capacity` | 駐輪可能台数 |
 | `region_id` | 地域 ID |
+
+#### ハローサイクリング
+
+| カラム | 説明 |
+|---|---|
+| `station_id` | ステーション ID |
+| `name` | ステーション名 |
+| `lat` | 緯度 |
+| `lon` | 経度 |
+| `address` | 住所 |
+| `rental_uris.web` | 予約 URL |
+| `parking_hoop` | フープの有無 |
+| `parking_type` | 駐輪タイプ |
+| `contact_phone` | 連絡先電話番号 |
+| `vehicle_capacity` | 車両収容台数 |
+| `is_charging_station` | 充電対応の有無 |
 
 ## 更新スケジュール
 
@@ -43,8 +60,7 @@ npm run fetch
 
 | サービス | GBFS エンドポイント |
 |---|---|
-| ドコモ・バイクシェア（東京） | `https://api-public.odpt.org/api/v4/gbfs/docomo-cycle-tokyo/station_information.json` |
-| ドコモ・バイクシェア（全国） | `https://api-public.odpt.org/api/v4/gbfs/docomo-cycle/station_information.json` |
+| ドコモ・バイクシェア | `https://api-public.odpt.org/api/v4/gbfs/docomo-cycle/station_information.json` |
 | ハローサイクリング | `https://api-public.odpt.org/api/v4/gbfs/hellocycling/station_information.json` |
 
 ## ライセンス
