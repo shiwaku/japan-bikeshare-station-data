@@ -40,8 +40,13 @@
 
     #map { flex: 1; }
 
-    #popup-content { font-size: 13px; line-height: 1.8; }
-    #popup-content strong { display: block; margin-bottom: 4px; font-size: 14px; }
+    .popup-content { font-size: 13px; line-height: 1.6; min-width: 200px; }
+    .popup-content strong { display: block; margin-bottom: 6px; font-size: 14px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+    .popup-content table { border-collapse: collapse; width: 100%; }
+    .popup-content td { padding: 2px 4px; vertical-align: top; }
+    .popup-content td:first-child { color: #666; white-space: nowrap; padding-right: 10px; }
+
+    .maplibregl-ctrl-geolocate-active .maplibregl-ctrl-icon { background-color: #e8f4ff; }
   </style>
 </head>
 <body>
@@ -82,6 +87,10 @@ const map = new maplibregl.Map({
 });
 
 map.addControl(new maplibregl.NavigationControl(), 'top-right');
+map.addControl(new maplibregl.GeolocateControl({
+  positionOptions: { enableHighAccuracy: true },
+  trackUserLocation: true,
+}), 'top-right');
 
 const active = new Set(LAYERS.map(l => l.id));
 
@@ -135,17 +144,18 @@ map.on('load', async () => {
     map.on('mouseenter', layer.id, () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', layer.id, () => { map.getCanvas().style.cursor = ''; });
 
-    // クリックでポップアップ
+    // クリックでポップアップ（全属性表示）
     map.on('click', layer.id, e => {
       const p = e.features[0].properties;
-      new maplibregl.Popup({ maxWidth: '260px' })
+      const rows = Object.entries(p)
+        .map(([k, v]) => `<tr><td>${k}</td><td>${v !== '' && v !== null ? v : '—'}</td></tr>`)
+        .join('');
+      new maplibregl.Popup({ maxWidth: '320px' })
         .setLngLat(e.features[0].geometry.coordinates)
         .setHTML(`
-          <div id="popup-content">
-            <strong>${p.name}</strong>
-            駐輪台数: ${p.capacity ?? '—'}<br>
-            ステーションID: ${p.station_id}<br>
-            地域ID: ${p.region_id ?? '—'}
+          <div class="popup-content">
+            <strong>${p.name ?? '—'}</strong>
+            <table>${rows}</table>
           </div>
         `)
         .addTo(map);
