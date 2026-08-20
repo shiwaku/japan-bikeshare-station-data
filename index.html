@@ -50,6 +50,59 @@
 
     #map { flex: 1; }
 
+    #about-btn {
+      margin-left: auto;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: transparent;
+      color: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    #about-btn:hover { background: rgba(255, 255, 255, 0.12); }
+
+    #about-dialog {
+      /* body の flex 配置に飲まれないよう、明示的に中央寄せする */
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      max-width: 480px;
+      width: calc(100% - 32px);
+      height: fit-content;
+      border: none;
+      border-radius: 10px;
+      padding: 20px;
+      background: #1a1a2e;
+      color: #eee;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    #about-dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+    #about-dialog h2 { font-size: 15px; margin-bottom: 12px; }
+    #about-dialog h3 { font-size: 13px; margin-top: 16px; color: #9ecbff; }
+    #about-dialog p { margin-top: 4px; }
+    #about-dialog a { color: #9ecbff; }
+    #about-dialog .note {
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-left: 3px solid #555;
+      background: rgba(255, 255, 255, 0.05);
+      font-size: 12px;
+      color: #ccc;
+    }
+    #about-dialog form { margin-top: 18px; text-align: right; }
+    #about-dialog form button {
+      padding: 6px 16px;
+      border: none;
+      border-radius: 6px;
+      background: #3a3a5e;
+      color: #fff;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
     .popup-content { font-size: 13px; line-height: 1.6; min-width: 200px; }
     .popup-content strong { display: block; margin-bottom: 6px; font-size: 14px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
     .popup-content table { border-collapse: collapse; width: 100%; }
@@ -64,10 +117,44 @@
 <header>
   <h1>Japan Bikeshare Stations</h1>
   <div id="controls"></div>
+  <button id="about-btn" type="button">データについて</button>
 </header>
+
+<dialog id="about-dialog">
+  <h2>データについて</h2>
+
+  <h3>ステーション情報</h3>
+  <p>
+    <a href="https://ckan.odpt.org/" target="_blank" rel="noopener">公共交通オープンデータセンター</a>
+    が提供する GBFS データ（ドコモ・バイクシェア／ハローサイクリング）を利用しています。
+  </p>
+  <p class="note">
+    本サービスが利用する公共交通データは、公共交通オープンデータセンターにおいて提供されるものです。
+    公共交通事業者により提供されたデータを元にしていますが、必ずしも正確・完全なものとは限りません。
+    本サービスの表示内容について、公共交通事業者への直接の問合せは行わないでください。
+  </p>
+
+  <h3>背景地図</h3>
+  <p>
+    <a href="https://github.com/gsi-cyberjapan/optimal_bvmap" target="_blank" rel="noopener">国土地理院 最適化ベクトルタイル</a>
+    （淡色地図風スタイルを暗色に変換して使用）
+  </p>
+
+  <h3>ソースコード</h3>
+  <p>
+    <a href="https://github.com/shiwaku/japan-bikeshare-station-data" target="_blank" rel="noopener">shiwaku/japan-bikeshare-station-data</a>
+  </p>
+
+  <form method="dialog"><button>閉じる</button></form>
+</dialog>
 <div id="map"></div>
 
 <script>
+// データ出典。地図右下のアトリビュートに表示する。
+// 公共交通オープンデータセンターの利用規約に基づき、出典を明記する。
+const ODPT_ATTRIBUTION =
+  'ステーション情報: <a href="https://ckan.odpt.org/" target="_blank" rel="noopener">公共交通オープンデータセンター</a>';
+
 const LAYERS = [
   {
     id: 'hellocycling',
@@ -196,6 +283,12 @@ LAYERS.forEach(layer => {
   controls.appendChild(btn);
 });
 
+// データについてのダイアログ
+const aboutDialog = document.getElementById('about-dialog');
+document.getElementById('about-btn').addEventListener('click', () => aboutDialog.showModal());
+// 背景クリックで閉じる
+aboutDialog.addEventListener('click', e => { if (e.target === aboutDialog) aboutDialog.close(); });
+
 // 1レイヤー = 発光3枚 + ラベル の4枚構成
 function subLayerIds(id) {
   return [...SUBS.map(s => `${id}-${s.suffix}`), `${id}-label`];
@@ -217,7 +310,11 @@ async function setupStationLayers() {
     const res = await fetch(layer.file);
     const geojson = await res.json();
 
-    map.addSource(layer.id, { type: 'geojson', data: geojson });
+    map.addSource(layer.id, {
+      type: 'geojson',
+      data: geojson,
+      attribution: ODPT_ATTRIBUTION,
+    });
     layer.btn.textContent = `${layer.label} (${geojson.features.length.toLocaleString()})`;
 
     // 発光表現: circle を3枚重ねる（jartic-traffic-signal-cycle-converter と同じ構成）
