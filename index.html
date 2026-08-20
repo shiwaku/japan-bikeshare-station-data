@@ -73,6 +73,16 @@ const LAYERS = [
   },
 ];
 
+// 発光用サブレイヤー（背面→前面）
+const SUBS = [
+  { suffix: 'glow', radius: 18, blur: 2.5, opacity: 0.6 },
+  { suffix: 'mid',  radius: 9,  blur: 1.5, opacity: 0.8 },
+  { suffix: 'core', radius: 1.5, blur: 0,  opacity: 1, white: true },
+];
+
+// 当たり判定は最も広い glow で取る
+const PICK = 'glow';
+
 const map = new maplibregl.Map({
   container: 'map',
   style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
@@ -103,16 +113,20 @@ LAYERS.forEach(layer => {
   controls.appendChild(btn);
 });
 
+// 1レイヤー = 発光3枚 + ラベル の4枚構成
+function subLayerIds(id) {
+  return [...SUBS.map(s => `${id}-${s.suffix}`), `${id}-label`];
+}
+
 function toggleLayer(id, btn) {
-  if (active.has(id)) {
-    active.delete(id);
-    map.setLayoutProperty(id, 'visibility', 'none');
-    btn.classList.remove('active');
-  } else {
-    active.add(id);
-    map.setLayoutProperty(id, 'visibility', 'visible');
-    btn.classList.add('active');
-  }
+  const visible = !active.has(id);
+  if (visible) active.add(id); else active.delete(id);
+  btn.classList.toggle('active', visible);
+  subLayerIds(id).forEach(sub => {
+    if (map.getLayer(sub)) {
+      map.setLayoutProperty(sub, 'visibility', visible ? 'visible' : 'none');
+    }
+  });
 }
 
 map.on('load', async () => {
@@ -123,18 +137,21 @@ map.on('load', async () => {
     map.addSource(layer.id, { type: 'geojson', data: geojson });
     layer.btn.textContent = `${layer.label} (${geojson.features.length.toLocaleString()})`;
 
-    map.addLayer({
-      id: layer.id,
-      type: 'circle',
-      source: layer.id,
-      paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 2, 10, 5, 14, 8],
-        'circle-color': layer.color,
-        'circle-opacity': 0.85,
-        'circle-stroke-width': 1,
-        'circle-stroke-color': '#fff',
-        'circle-stroke-opacity': 0.5,
-      },
+    // 発光表現: circle を3枚重ねる（jartic-traffic-signal-cycle-converter と同じ構成）
+    // 外側ほど大きく・ぼかしを強く・薄く、中心に白い芯を置く
+    SUBS.forEach(sub => {
+      map.addLayer({
+        id: `${layer.id}-${sub.suffix}`,
+        type: 'circle',
+        source: layer.id,
+        paint: {
+          'circle-color': sub.white ? 'rgba(255, 255, 255, 1)' : layer.color,
+          'circle-radius': ['interpolate', ['linear'], ['zoom'],
+            5, sub.radius * 0.35, 10, sub.radius * 0.7, 14, sub.radius],
+          'circle-blur': sub.blur,
+          'circle-opacity': sub.opacity,
+        },
+      });
     });
 
     // ステーション名ラベル
@@ -159,11 +176,11 @@ map.on('load', async () => {
     });
 
     // ホバーカーソル
-    map.on('mouseenter', layer.id, () => { map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', layer.id, () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', `${layer.id}-${PICK}`, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', `${layer.id}-${PICK}`, () => { map.getCanvas().style.cursor = ''; });
 
     // クリックでポップアップ（全属性表示）
-    map.on('click', layer.id, e => {
+    map.on('click', `${layer.id}-${PICK}`, e => {
       const p = e.features[0].properties;
       const rows = Object.entries(p)
         .filter(([k]) => k !== 'rental_uris.ios' && k !== 'rental_uris.android')
