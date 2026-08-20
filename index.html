@@ -9,7 +9,16 @@
   <script src="https://unpkg.com/pmtiles@3/dist/pmtiles.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; }
+    /* モバイルではツールバー表示時に 100vh が可視領域を超え、
+       地図下端のアトリビュートが画面外に出るため dvh を使う */
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+    }
 
     header {
       padding: 10px 16px;
